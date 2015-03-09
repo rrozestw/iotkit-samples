@@ -136,7 +136,9 @@ boolean network_not_set(){
 
     if(isSet){
         if(strstr(isSet, networkSSID) != NULL){
+            lcd.setRGB(0,255,0);
             ShowInfoLog("Network is set", networkSSID);
+            delay(2500);
             return false;
         }
     }
