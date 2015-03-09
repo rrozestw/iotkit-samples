@@ -30,12 +30,12 @@ void setup() {
     delay(5000);
 
     if(network_not_set()){
-        setNetwork();
+        if(setNetwork()){
+            if(device_not_activated()){
+                activateAndRegisterComponents();
+            }
+        }
     }
-    if(device_not_activated()){
-        activateAndRegisterComponents();
-    }
-
 }
 
 void loop() {
@@ -69,7 +69,7 @@ void lcdClearRow(int row){
 
 void Display(){
     //from blue to red
-    int tempProcentValue = (TemperatureValue - minTempBlue) * (100 / (maxTempRed-minTempBlue));
+    float tempProcentValue = (TemperatureValue - minTempBlue) * (100 / (maxTempRed-minTempBlue));
     lcd.setRGB(255*tempProcentValue/100,0,(255 * (100 - tempProcentValue))/100);
 
     char* formated = new char[512];
@@ -140,7 +140,7 @@ boolean network_not_set(){
             return false;
         }
     }
-    ShowInfoLog(networkSSID, "network not set");
+    ShowInfoLog(networkSSID, " network not set");
     return true;
 }
 
@@ -152,7 +152,7 @@ String scanNetwork(){
         delay(1000);
     }
     char* formated = new char[512];
-    sprintf(formated, "wpa_cli scan_results | grep %s | awk 'NR==1{gsub(/\\[/,\"\",$0]);gsub(/\\]/,\"\",$0);print $4}'", networkSSID);
+    sprintf(formated, "wpa_cli scan_results | grep %s | awk 'NR==1{gsub(/\\[/,\"\",$0);gsub(/\\]/,\"\",$0);print $4}'", networkSSID);
 
     char* scanResult = getProcessOutput(formated);
 
@@ -173,29 +173,28 @@ String scanNetwork(){
     return "";
 }
 
-void WriteWpaConfig(){
-    String networkType = scanNetwork();
+void WriteWpaConfig(String networkType){
 
-
+    int len = 0;
     char * network_conf = new char[512];
 
 
     if(networkType== "EAP"){
-        sprintf(network_conf,"network={\nssid=\"%s\"\n\nkey_mgmt=WPA-EAP\npairwise=CCMP TKIP\ngroup=CCMP TKIP WEP104 WEP40\neap=TTLS PEAP TLS\nidentity=\"%s\"\npassword=\"%s\"\nphase1=\"peaplabel=0\"\n}\n",networkSSID,WIFI_identity,WIFI_password);
+        len = sprintf(network_conf,"network={\nssid=\"%s\"\n\nkey_mgmt=WPA-EAP\npairwise=CCMP TKIP\ngroup=CCMP TKIP WEP104 WEP40\neap=TTLS PEAP TLS\nidentity=\"%s\"\npassword=\"%s\"\nphase1=\"peaplabel=0\"\n}\n",networkSSID,WIFI_identity,WIFI_password);
     }
     if(networkType== "OPEN"){
-        sprintf(network_conf,"network={\nssid=\"%s\"\n\nkey_mgmt=NONE\n}\n",networkSSID);
+        len = sprintf(network_conf,"network={\nssid=\"%s\"\n\nkey_mgmt=NONE\n}\n",networkSSID);
     }
     if(networkType== "PSK"){
-        sprintf(network_conf,"network={\nssid=\"%s\"\n\nkey_mgmt=WPA-PSK\npairwise=CCMP TKIP\ngroup=CCMP TKIP WEP104 WEP40\neap=TTLS PEAP TLS\npsk=\"%s\"\n}\n",networkSSID,WIFI_password);
+        len = sprintf(network_conf,"network={\nssid=\"%s\"\n\nkey_mgmt=WPA-PSK\npairwise=CCMP TKIP\ngroup=CCMP TKIP WEP104 WEP40\neap=TTLS PEAP TLS\npsk=\"%s\"\n}\n",networkSSID,WIFI_password);
     }
     if(networkType== "WEP"){
-        sprintf(network_conf,"network={\nssid=\"%s\"\n\nkey_mgmt=NONE\ngroup=WEP104 WEP40\nwep_key0=\"%s\"\n}\n",networkSSID,WIFI_password);
+        len = sprintf(network_conf,"network={\nssid=\"%s\"\n\nkey_mgmt=NONE\ngroup=WEP104 WEP40\nwep_key0=\"%s\"\n}\n",networkSSID,WIFI_password);
     }
 
     //write configuration to file
     FILE *file =  fopen("/etc/wpa_supplicant/wpa_supplicant.conf","a");
-    fwrite(network_conf2, sizeof(char),len,file);
+    fwrite(network_conf, sizeof(char),len,file);
     fclose(file);
 }
 
@@ -213,7 +212,7 @@ void SelectNetwork(){
     system(networkSelect);
 }
 
-void WaitForIp(int timeout){
+boolean WaitForIp(int timeout){
     for(int i = 0;i < timeout;i++){
         char* timeLeft = new char[15];
         sprintf(timeLeft,"%i seconds left", (30-i));
@@ -221,13 +220,14 @@ void WaitForIp(int timeout){
         char* ip = getProcessOutput("wpa_cli status | grep ^ip_address | awk '{split($0,s,\"=\");print s[2]}'");
         if(String(ip) != ""){
             ShowInfoLog("ip address: ", ip);
-            break;
+            return true;
         }
         delay(1000);
     }
+    return false;
 }
 
-void setNetwork(){
+boolean setNetwork(){
     String networkType = scanNetwork();
     if(networkType!=""){
         WriteWpaConfig();
@@ -235,12 +235,14 @@ void setNetwork(){
         delay(1000);
         SelectNetwork();
         //we wait max 30s for
-        WaitForIp(30);
+        if(WaitForIp(30)){
+            return true;
+        }
 
     } else {
         ShowInfoLog("Network not detected","");
     }
-
+    return false;
 }
 
 
