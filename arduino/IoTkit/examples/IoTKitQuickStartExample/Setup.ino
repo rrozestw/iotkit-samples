@@ -27,7 +27,7 @@ void setup() {
     lcd.begin(16, 2);
     lcd.setRGB(0,174,239);
     ShowInfoLog("Intel Inside","Edison");
-    delay(5000);
+    delay(30 *1000); //wait 30s for boot
 
     if(network_not_set()){
         if(setNetwork()){
@@ -158,7 +158,7 @@ String scanNetwork(){
 
     ShowInfoLog("Network type:",scanResult);
     delay(3000);
-    
+
     if (scanResult){
 
         if(strstr(scanResult,"WPA2-EAP")!= NULL || strstr(scanResult,"WPA-EAP")!=NULL){
@@ -236,7 +236,7 @@ boolean setNetwork(){
         RestartNetworking();
         delay(1000);
         SelectNetwork();
-        //we wait max 30s for
+        //we wait max 30s for IP
         if(WaitForIp(30)){
             return true;
         }

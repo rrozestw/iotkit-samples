@@ -97,7 +97,7 @@ void OnAlarm(String component, String command){
      lcd.setCursor(0,1);
     lcd.print("value: "+command);
 
-    for(int i=0;i<5;i++){
+    for(int i=0;i<6;i++){
      if(i%2==0){
       lcd.setRGB(255,0,0);
      } else {
