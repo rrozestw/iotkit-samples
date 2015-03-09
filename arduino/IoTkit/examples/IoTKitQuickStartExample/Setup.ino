@@ -156,16 +156,18 @@ String scanNetwork(){
 
     char* scanResult = getProcessOutput(formated);
 
+    ShowInfoLog("Network type:",scanResult);
+    delay(3000);
+    
     if (scanResult){
 
-        ShowInfoLog("Network type:",scanResult);
         if(strstr(scanResult,"WPA2-EAP")!= NULL || strstr(scanResult,"WPA-EAP")!=NULL){
         return "EAP";
         } else if(strstr(scanResult,"WEP")!=NULL){
         return "WEP";
         } else if(strstr(scanResult,"OPEN")!=NULL){
         return "OPEN";
-        }else if(strstr(scanResult,"WPA-PSK")!=NULL){
+        }else if(strstr(scanResult,"WPA-PSK")!=NULL || strstr(scanResult,"WPA2-PSK")!=NULL){
         return "PSK";
         }
     }
